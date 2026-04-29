@@ -1,0 +1,149 @@
+<div class="shell">
+
+  <!-- Map canvas -->
+  <div #mapEl class="map"></div>
+
+  <!-- Error banner -->
+  @if (locationError()) {
+    <div class="banner banner--error">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span>{{ locationError() }}</span>
+      <button class="banner__close" (click)="dismissError()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  }
+
+  <!-- Parked toast -->
+  @if (justParked()) {
+    <div class="banner banner--success">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <span>Car location saved!</span>
+    </div>
+  }
+
+  <!-- Distance card (shows only when parking is set) -->
+  @if (parkingSpot() && currentPos()) {
+    <div class="distance-card">
+      <div
+        class="compass-arrow"
+        [style.transform]="'rotate(' + (bearingDeg() ?? 0) + 'deg)'"
+        aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <circle cx="18" cy="18" r="17" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+          <path d="M18 6 L23 26 L18 22 L13 26 Z" fill="#ef4444"/>
+        </svg>
+      </div>
+      <div class="distance-info">
+        <span class="distance-value">{{ formattedDistance() }}</span>
+        <span class="distance-label">to your car</span>
+      </div>
+    </div>
+  }
+
+  <!-- Floating map control buttons -->
+  <div class="map-controls">
+    <button class="fab fab--sm" (click)="centerOnMe()" title="Center on me">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        <circle cx="12" cy="12" r="9"/>
+      </svg>
+    </button>
+    @if (parkingSpot() && currentPos()) {
+      <button class="fab fab--sm" (click)="showBoth()" title="Show both markers">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+        </svg>
+      </button>
+      <button class="fab fab--sm fab--red" (click)="centerOnParking()" title="Center on parked car">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="3" width="15" height="13" rx="2"/>
+          <path d="M16 8h4l3 5v3h-7V8z"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/>
+          <circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+      </button>
+    }
+  </div>
+
+  <!-- Bottom panel -->
+  <div class="panel">
+    <div class="panel-handle"></div>
+
+    <!-- GPS status row -->
+    <div class="status-row">
+      <div class="status-dot" [class.status-dot--on]="isTracking()"></div>
+      <span class="status-text">
+        {{ isTracking() ? 'Live tracking' : 'Tracking off' }}
+      </span>
+      @if (currentPos()) {
+        <span class="coords">
+          {{ currentPos()!.lat.toFixed(5) }}, {{ currentPos()!.lng.toFixed(5) }}
+        </span>
+      }
+    </div>
+
+    <!-- Main actions -->
+    <div class="actions">
+      <button
+        class="btn"
+        [class.btn--active]="isTracking()"
+        (click)="toggleTracking()">
+        @if (isTracking()) {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16"/>
+            <rect x="14" y="4" width="4" height="16"/>
+          </svg>
+          Stop
+        } @else {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Track Me
+        }
+      </button>
+
+      <button
+        class="btn btn--park"
+        [disabled]="!currentPos()"
+        (click)="parkHere()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1" y="3" width="15" height="13" rx="2"/>
+          <path d="M16 8h4l3 5v3h-7V8z"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/>
+          <circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+        Park Here
+      </button>
+    </div>
+
+    <!-- Clear parking (secondary action) -->
+    @if (parkingSpot()) {
+      <button class="btn btn--ghost" (click)="clearParking()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14H6L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M9 6V4h6v2"/>
+        </svg>
+        Clear saved parking spot
+      </button>
+    }
+
+    <!-- iPhone HTTPS hint -->
+    <p class="hint">
+      Requires HTTPS on iPhone — run
+      <code>ng serve --ssl --host 0.0.0.0</code>
+      or use <code>ngrok http 4200</code>.
+    </p>
+  </div>
+
+</div>
